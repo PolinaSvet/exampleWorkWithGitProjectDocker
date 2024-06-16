@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"pipeline/logger"
 	"strconv"
 	"strings"
 	"sync"
@@ -126,6 +127,7 @@ func (r *RingMessBuffer) Push(el RingMessStruct) {
 
 	r.data.Value = el
 	r.data = r.data.Next()
+	logger.SetLog(el.mess, el.inputData, el.datetime, el.success)
 }
 
 // Get the length of the mess buffer
@@ -229,7 +231,7 @@ func readDataFromConsol(dataToChan chan<- IntDataType, done chan bool, messBuffP
 	scanner := bufio.NewScanner(os.Stdin)
 	nameResource := "console"
 	var value string
-	fmt.Println("The program has started working: (<report> - for reporting, <exit> - for closing programm):")
+	fmt.Println("The program has started working: (<log> - for zerolog, <report> - for reporting, <exit> - for closing programm):")
 	for scanner.Scan() {
 		value = scanner.Text()
 		switch strings.ToLower(value) {
@@ -240,6 +242,10 @@ func readDataFromConsol(dataToChan chan<- IntDataType, done chan bool, messBuffP
 		case "report":
 			fmt.Println("Report:")
 			messBuffGetDataCmd <- true
+			continue
+		case "log":
+			fmt.Println("Log:")
+			logger.GetLog()
 			continue
 		}
 		i, err := strconv.Atoi(value)
@@ -375,6 +381,9 @@ func funcFilterStage3(prevData <-chan IntDataType, done <-chan bool, messBuffPus
 }
 
 func main() {
+	// setting zerolog
+	logger.SetupLogger()
+
 	done := make(chan bool)
 
 	messBuffPushData := make(chan RingMessStruct)
